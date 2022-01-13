@@ -4,6 +4,7 @@ using DataFrames
 using Distributions
 using Random
 using StatsBase
+using NamedArrays
 
 Pkg.installed()
 
@@ -20,6 +21,8 @@ val = [20, 20, 15, 25, 15]
 start = [20, 20, 20, 20, 20]
 unfulfilled = zeros(5)
 
+#score = DataFrame(Profit = 0, Thrown_out = 0, Unfulfilled = 0, Fulfilled = 0)
+score = NamedArray([0, 0, 0, 0], ["Profit", "Thrown_out", "Unfulfilled", "Fulfilled"])
 
 
 
@@ -53,42 +56,61 @@ w = Weights(prob)
     
     
 
-
-cars_num = sample(cars, w)
-#wylosować ilość osób w kazdym samochodzie, 1 samochod = jedna zmienna?
-num_ppl = Dict(i => rand(1:cars_num) for i in 1:cars_num)
-# wylosować zamówienia dla kazdego samochodu, zapisujemy je jako data DataFrame
-#gdzie kolumny to produkty zamowione a rzedy to nr samochodu
-orders = DataFrame(BigMac = zeros(cars_num), Drwal = zeros(cars_num),
-McNuggets = zeros(cars_num), McChicken = zeros(cars_num), Wege = zeros(cars_num))
-    
-#losujemy zamowienia dla kazdego samochodu
-for i in 1:nrow(orders)
-    for j in 1:length(num_ppl)
-            prod = rand(1:ncol(orders))
-            orders[i, prod] += 1
+function OneStep()
+    cars_num = sample(cars, w)
+    #wylosować ilość osób w kazdym samochodzie, 1 samochod = jedna zmienna?
+    num_ppl = Dict(i => rand(1:cars_num) for i in 1:cars_num)
+    # wylosować zamówienia dla kazdego samochodu, zapisujemy je jako data DataFrame
+    #gdzie kolumny to produkty zamowione a rzedy to nr samochodu
+    orders = DataFrame(BigMac = zeros(cars_num), Drwal = zeros(cars_num),
+    McNuggets = zeros(cars_num), McChicken = zeros(cars_num), Wege = zeros(cars_num))
+        
+    #losujemy zamowienia dla kazdego samochodu
+    for i in 1:nrow(orders)
+        for j in 1:length(num_ppl)
+                prod = rand(1:ncol(orders))
+                orders[i, prod] += 1
+        end
     end
+
+    sum_order = sum.(eachcol(orders))
+    global start -= sum_order
+    end_inv = start
+
+    for i in 1:length(end_inv)
+        if(end_inv[i] < 0)
+            unfulfilled[i] += end_inv[i]
+            end_inv[i] = 0
+        end
+    end
+
+    fulfilled = sum_order - unfulfilled
+
+    gain = fulfilled .* prices
+    penalty = unfulfilled .* (0.25*prices)
+    val .-= 1
+    thrown_out = zeros(5)
+    for i in 1:length(val)
+        if(val[i] <= 0)
+            thrown_out[i] = end_inv[i]
+            end_inv[i] += start[i]
+        end
+    end
+    loss = thrown_out.* (0.25*prices)
+
+    profit = gain - penalty - loss
+
+    score["Profit"] += sum(profit)
+    score["Thrown_out"] += sum(thrown_out)
+    score["Unfulfilled"] += sum(unfulfilled)
+    score["Fulfilled"] += sum(fulfilled)
+
+    start = end_inv
+    println(score)
 end
 
-sum_order = sum.(eachcol(orders))
-start -= sum_order
-end_inv = start
+OneStep()
 
-for i in 1:length(end_inv)
-    if(end_inv[i] < 0)
-        unfulfilled[i] += end_inv[i]
-        end_inv[i] = 0
-    end
-end
-
-fulfilled = sum_order - unfulfilled
-
-gain = fulfilled .* prices
-penalty = unfulfilled .* (0.25*prices)
-val .-= 1
-for i in 1:lenght(val)
-    if(val[i] <= 0)
-        thrown_out[i] = end_inv[i]
 
 
 
