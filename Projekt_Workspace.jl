@@ -6,7 +6,9 @@ using Random
 using StatsBase
 using NamedArrays
 using Plots
+using PyPlot
 
+prices = [20, 25, 18, 20, 15]
 score = [0.0, 0, 0, 0]
     
 
@@ -148,7 +150,9 @@ show(stdout, "text/plain", xd)
 #wylaczamy kolumne profit
 profit = xd[!, "Profit"]
 #wykres slupkowy
-Plots.bar([1:1:40;], profit, label = "Profit")
+plt.clf()
+plt.bar([1:1:40;], profit, label = "Profit")
 #splotujmy jeszcze raz od 10 do 30
 profit_2 = profit[10:30]
-Plots.bar([10:1:30;], profit_2) 
+plt.bar([10:1:30;], profit_2)
+gcf()
