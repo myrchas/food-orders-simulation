@@ -83,7 +83,7 @@ end
 #val to daty waznosci
 #start to inventory na poczatku minuty
 #mean_val to ile razy odpalamy symulacje zeby policzyc srednie wartosci
-function SimulateOneRun(horizon, val, start, mean_val)
+function SimulateOneRun(horizon, val, start, mean_val, prob)
     #Ceny produktów
     prices = [20, 30, 23, 25, 18]
     #pusty wektor do wynikow
@@ -103,7 +103,7 @@ function SimulateOneRun(horizon, val, start, mean_val)
         start_inventory = deepcopy(_start)
         #Ilość samochodów na minutę tworzymy rozkład zeby uzyc sample w funkcji
         cars = [1, 2, 3, 4, 5]
-        prob = [0.15, 0.25, 0.2, 0.2, 0.1]
+        #prob = [0.15, 0.25, 0.2, 0.2, 0.1]
         w = Weights(prob)
         #Wynik symulacji jako dataframe
         df = DataFrame(Profit = 0.0, Thrown_out = 0.0, Unfulfilled = 0.0, Fulfilled = 0.0)
@@ -128,7 +128,7 @@ function SimulateOneRun(horizon, val, start, mean_val)
 end
 
 #mean_val to ilosc razy jaka odpalimy simulateOneRun zeby policzyc srednia, tam wyzej bylo opisane
-function SimulatemanyRuns(mean_val)
+function SimulatemanyRuns(mean_val, prob)
     #daty waznosci
     validity = [10, 10, 10, 10, 10]
     #data frame z wynikami
@@ -137,16 +137,17 @@ function SimulatemanyRuns(mean_val)
     x = [fill(i, 5) for i in 1:40]
     #petla dla kazdego stanu inventory
     for i in x
-       push!(temp, SimulateOneRun(60, validity, i, mean_val))
+       push!(temp, SimulateOneRun(60, validity, i, mean_val, prob))
     end
     return temp
 end
 
 #uruchomienie symulacji
-@time xd = SimulatemanyRuns(100)[2:end, :]
+@time xd = SimulatemanyRuns(100, [0.15, 0.25, 0.2, 0.2, 0.1])[2:end, :]
 #to wyswietla caly data frame bez ucinania rzedow
 show(stdout, "text/plain", xd)
-#sprawdzmy dla jakich wartosci jest najwiekszy profit
+#---------------------------------------------------------
+###sprawdzmy dla jakich wartosci jest najwiekszy profit
 #wylaczamy kolumne profit
 profit = xd[!, "Profit"]
 #wykres slupkowy
@@ -155,4 +156,55 @@ plt.bar([1:1:40;], profit, label = "Profit")
 #splotujmy jeszcze raz od 10 do 30
 profit_2 = profit[10:30]
 plt.bar([10:1:30;], profit_2)
+profit_3 = profit[18:22]
+plt.bar([18:1:22;], profit_3)
+xlabel("Number of products")
+ylabel("Profit")
+gcf()
+#---------------------------------------------
+#sprawdzmy ile było wyrzucane jedzenia
+thrown = xd[!, "Thrown_out"]
+plt.clf()
+plt.bar([1:1:40;], thrown, color = "red", alpha = 0.7)
+xlabel("Number of products")
+ylabel("Loss from wasted products")
+gcf()
+
+#nakladamy na profit
+plt.clf()
+plt.bar([1:1:40;], profit, label = "Profit")
+#splotujmy jeszcze raz od 10 do 30
+profit_2 = profit[10:30]
+plt.bar([10:1:30;], profit_2)
+profit_3 = profit[18:22]
+plt.bar([18:1:22;], profit_3)
+plt.bar([1:1:40;], thrown, alpha=0.5)
+gcf()
+
+#ilosc spelnionych i niespelnionych zamowien
+fulfilled = xd[!, "Fulfilled"]
+unfulfilled = xd[!, "Unfulfilled"]
+plt.clf()
+plt.bar([1:1:40;], fulfilled, color = "green")
+plt.bar([1:1:40;], unfulfilled, color = "red")
+legend(["Fulfilled", "Unfulfilled"])
+xlabel("Number of products")
+ylabel("Orders")
+gcf()
+
+#zmiana ruchu samochodów na bardziej intensywny i mniej intensywny
+@time xd_2 = SimulatemanyRuns(100, [0.1, 0.2, 0.25, 0.25, 0.2])[2:end, :]
+@time xd_3 = SimulatemanyRuns(100, [0.25, 0.3, 0.2, 0.15, 0.1])[2:end, :]
+profit = xd[!, "Profit"]
+profit_22 = xd_2[!, "Profit"]
+profit_33 = xd_3[!, "Profit"]
+#wykres slupkowy
+plt.clf()
+
+plt.bar([1:1:40;], profit_22, alpha = 0.5, color = "red")
+plt.bar([1:1:40;], profit, color = "green")
+plt.bar([1:1:40;], profit_33, alpha = 0.8, color = "blue")
+xlabel("Number of products")
+ylabel("Profit")
+legend(["Low Traffic", "High Traffic", "Medium traffic"])
 gcf()
