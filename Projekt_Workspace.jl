@@ -24,8 +24,6 @@ start = [20, 20, 20, 20, 20]
 #score = DataFrame(Profit = 0, Thrown_out = 0, Unfulfilled = 0, Fulfilled = 0)
 score = [0.0, 0, 0, 0]
 
-
-
 ##Rozkłady 
 #Ilość samochodów na minutę tworzymy rozkład zeby uzyc sample w funkcji
 cars = [1, 2, 3, 4, 5]
@@ -54,22 +52,20 @@ w = Weights(prob)
 #     end
     
     
-    
-
 function OneStep(start_inv)
     cars_num = sample(cars, w)
     #wylosować ilość osób w kazdym samochodzie, 1 samochod = jedna zmienna?
     num_ppl = Dict(i => rand(1:cars_num) for i in 1:cars_num)
     # wylosować zamówienia dla kazdego samochodu, zapisujemy je jako data DataFrame
     #gdzie kolumny to produkty zamowione a rzedy to nr samochodu
-    orders = DataFrame(BigMac = zeros(cars_num), Drwal = zeros(cars_num),
-    McNuggets = zeros(cars_num), McChicken = zeros(cars_num), Wege = zeros(cars_num))
+    products = ["BigMac", "Drwal", "McNuggets", "McChicken", "Wege"]
+    orders = DataFrame(zeros(Int64, cars_num, length(products)), products)
         
     #losujemy zamowienia dla kazdego samochodu
     for i in 1:nrow(orders)
         for j in 1:length(num_ppl)
-                prod = rand(1:ncol(orders))
-                orders[i, prod] += 1
+                prod = rand(1:ncol(orders)) # można zmienić na jakiś sensowniejszy rozkład
+                orders[i, prod] += 1 # każda osoba wybiera po jednym produkcie?
         end
     end
 
@@ -138,10 +134,7 @@ function SimulateOneRun(horizon, start)
     return df_out
 end
 
+
+
 final = SimulateOneRun(60, [20, 20, 20, 20, 20])
 
-for i in 1:60
-    out = OneStep([20, 20, 20, 20, 20])
-    push!(df, out)
-end
-df
